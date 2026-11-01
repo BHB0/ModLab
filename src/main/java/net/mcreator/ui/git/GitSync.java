@@ -229,6 +229,8 @@ public final class GitSync {
 			} else {
 				showOutput(L10N.t("git.pull.title"), explain(pull.result()), JOptionPane.ERROR_MESSAGE);
 			}
+		} else if (offerRepositoryWorkspace()) {
+			// the workspace of the repository was opened instead of the current one
 		} else if (pull.changed()) {
 			JOptionPane.showMessageDialog(mcreator, L10N.t("git.pull.reload"), L10N.t("git.pull.title"),
 					JOptionPane.INFORMATION_MESSAGE);
@@ -266,8 +268,69 @@ public final class GitSync {
 			String output = merge.output();
 			boolean conflict = output.contains("CONFLICT") || output.contains("Automatic merge failed");
 			boolean unrelated = !merge.ok() && output.contains("unrelated histories");
+			LOG.info("git pull finished: code={}, changed={}, conflict={}, unrelated={}\n{}", merge.code(),
+					!before.equals(after), conflict, unrelated, output);
 			return new PullResult(merge, !before.equals(after), conflict, unrelated);
 		});
+	}
+
+	/**
+	 * @return the workspace files (.mcreator) at the root of the repository
+	 */
+	private List<String> trackedWorkspaceFiles() {
+		GitResult files = git("ls-files", "--", "*.mcreator");
+		List<String> result = new ArrayList<>();
+		if (files.ok()) {
+			for (String line : files.output().split("\\R")) {
+				String name = line.trim();
+				if (!name.isEmpty() && !name.contains("/"))
+					result.add(name);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * The repository may contain a workspace that is not the one currently opened (for example when getting the mod
+	 * of someone else into a new empty workspace). In this case, the workspace of the repository is offered.
+	 *
+	 * @return true if another workspace was opened
+	 */
+	private boolean offerRepositoryWorkspace() {
+		File current = mcreator.getWorkspace().getFileManager().getWorkspaceFile();
+		List<String> tracked = trackedWorkspaceFiles();
+		List<String> candidates = tracked.stream().filter(name -> !name.equals(current.getName())).toList();
+		LOG.info("Workspace files of the repository: {}, opened: {}", tracked, current.getName());
+
+		boolean currentEmpty = mcreator.getWorkspace().getModElements().isEmpty();
+		if (candidates.isEmpty() || (tracked.contains(current.getName()) && !currentEmpty))
+			return false;
+
+		String target;
+		if (candidates.size() == 1) {
+			int choice = JOptionPane.showConfirmDialog(mcreator,
+					L10N.t("git.pull.other_workspace", candidates.get(0), current.getName()),
+					L10N.t("git.pull.title"), JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+			if (choice != JOptionPane.YES_OPTION)
+				return false;
+			target = candidates.get(0);
+		} else {
+			Object selected = JOptionPane.showInputDialog(mcreator, L10N.t("git.pull.choose_workspace"),
+					L10N.t("git.pull.title"), JOptionPane.QUESTION_MESSAGE, null, candidates.toArray(),
+					candidates.get(0));
+			if (selected == null)
+				return false;
+			target = selected.toString();
+		}
+
+		MCreatorApplication application = mcreator.getApplication();
+		if (!mcreator.closeThisMCreator(true)) {
+			JOptionPane.showMessageDialog(mcreator, L10N.t("git.pull.reload_failed"), L10N.t("git.pull.title"),
+					JOptionPane.WARNING_MESSAGE);
+			return false;
+		}
+		application.openWorkspaceInMCreator(new File(dir, target), true);
+		return true;
 	}
 
 	/**
@@ -289,8 +352,11 @@ public final class GitSync {
 
 		// Closing a workspace saves the version kept in memory, which would erase the downloaded changes.
 		// So the downloaded workspace file is written back right after closing, then the workspace is opened again.
-		if (!mcreator.closeThisMCreator(true))
+		if (!mcreator.closeThisMCreator(true)) {
+			JOptionPane.showMessageDialog(mcreator, L10N.t("git.pull.reload_failed"), L10N.t("git.pull.title"),
+					JOptionPane.WARNING_MESSAGE);
 			return;
+		}
 
 		try {
 			Files.write(workspaceFile.toPath(), downloaded);
@@ -373,6 +439,11 @@ public final class GitSync {
 		if (!user.matches("[A-Za-z0-9-]{1,39}")) {
 			JOptionPane.showMessageDialog(mcreator, L10N.t("git.invite.invalid_user"), title,
 					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+
+		if (user.equalsIgnoreCase(slug.substring(0, slug.indexOf('/')))) {
+			JOptionPane.showMessageDialog(mcreator, L10N.t("git.invite.self"), title, JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
 
@@ -492,7 +563,11 @@ public final class GitSync {
 		String output = result.output();
 		String lower = output.toLowerCase();
 		String hint = null;
-		if (result.code() == 401 || result.code() == 403 || result.code() == 404 || result.code() == 422)
+		if (result.code() == 422 && lower.contains("cannot be a collaborator"))
+			hint = L10N.t("git.invite.self");
+		else if (result.code() == 422)
+			hint = L10N.t("git.error.api_invalid");
+		else if (result.code() == 401 || result.code() == 403 || result.code() == 404)
 			hint = L10N.t("git.error.api_access");
 		else if (lower.contains("tell me who you are") || lower.contains("author identity unknown"))
 			hint = L10N.t("git.error.identity");

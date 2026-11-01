@@ -38,7 +38,9 @@ import net.mcreator.ui.component.util.ComponentUtils;
 import net.mcreator.ui.component.util.EventButtonGroup;
 import net.mcreator.ui.component.util.ListUtil;
 import net.mcreator.ui.component.util.PanelUtils;
+import net.mcreator.ui.dialogs.BatchEditDialog;
 import net.mcreator.ui.dialogs.ModElementIDsDialog;
+import net.mcreator.ui.favorites.FavoritesManager;
 import net.mcreator.ui.dialogs.ProgressDialog;
 import net.mcreator.ui.dialogs.SearchUsagesDialog;
 import net.mcreator.ui.ide.ProjectFileOpener;
@@ -771,6 +773,17 @@ import java.util.regex.Pattern;
 		contextMenu.addSeparator();
 		contextMenu.add(searchElement);
 		contextMenu.add(duplicateElement);
+		JMenuItem favoriteElement = new JMenuItem(L10N.t("workspace.elements.list.edit.favorite"));
+		favoriteElement.addActionListener(_ -> {
+			List<String> names = list.getSelectedValuesList().stream().filter(ModElement.class::isInstance)
+					.map(element -> ((ModElement) element).getName()).toList();
+			if (!names.isEmpty())
+				FavoritesManager.toggle(mcreator.getWorkspace(), names);
+		});
+		contextMenu.add(favoriteElement);
+		JMenuItem batchEditElements = new JMenuItem(L10N.t("workspace.elements.list.edit.batch"));
+		batchEditElements.addActionListener(_ -> BatchEditDialog.show(mcreator));
+		contextMenu.add(batchEditElements);
 		contextMenu.add(lockElement);
 		contextMenu.add(idElement);
 

@@ -21,6 +21,8 @@ package net.mcreator.ui.dialogs;
 import net.mcreator.generator.GeneratorTemplate;
 import net.mcreator.io.FileIO;
 import net.mcreator.ui.MCreator;
+import net.mcreator.ui.assistant.AssistantClient;
+import net.mcreator.ui.assistant.AssistantDialog;
 import net.mcreator.ui.MCreatorApplication;
 import net.mcreator.ui.action.impl.workspace.RegenerateCodeAction;
 import net.mcreator.ui.init.L10N;
@@ -122,8 +124,17 @@ public class CodeErrorDialog {
 		wrapper.add("North", L10N.label("dialog.code_error.compilation_list"));
 		wrapper.add("Center", sp);
 
-		Object[] options = { L10N.t("dialog.code_error.show_in_workspace"), L10N.t("dialog.code_error.show_build_log"),
-				L10N.t("gradle.errors.do_nothing"), L10N.t("action.support") };
+		String explanation = CompileErrorExplainer.explain(stderroutput);
+		if (!explanation.isEmpty())
+			wrapper.add("South", new JLabel(explanation));
+
+		boolean assistantAvailable = AssistantClient.isConfigured();
+		Object[] options = assistantAvailable ?
+				new Object[] { L10N.t("dialog.code_error.show_in_workspace"), L10N.t("dialog.code_error.show_build_log"),
+						L10N.t("gradle.errors.do_nothing"), L10N.t("action.support"),
+						L10N.t("assistant.explain_error") } :
+				new Object[] { L10N.t("dialog.code_error.show_in_workspace"), L10N.t("dialog.code_error.show_build_log"),
+						L10N.t("gradle.errors.do_nothing"), L10N.t("action.support") };
 		int n = JOptionPane.showOptionDialog(mcreator, wrapper, L10N.t("dialog.code_error.title"),
 				JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
 		if (n == 0) {
@@ -134,6 +145,11 @@ public class CodeErrorDialog {
 			mcreator.showConsole();
 		} else if (n == 3) {
 			DesktopUtils.browseSafe(MCreatorApplication.SERVER_DOMAIN + "/support");
+		} else if (n == 4) {
+			StringBuilder excerpt = new StringBuilder();
+			stderroutput.lines().filter(line -> line.contains(": error:") || line.strip().startsWith("symbol:"))
+					.limit(16).forEach(line -> excerpt.append(line.strip()).append('\n'));
+			AssistantDialog.openWith(mcreator, L10N.t("assistant.explain_prompt") + "\n\n" + excerpt);
 		}
 
 		return true;

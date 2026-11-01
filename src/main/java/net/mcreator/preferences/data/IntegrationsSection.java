@@ -22,6 +22,7 @@ package net.mcreator.preferences.data;
 import net.mcreator.preferences.PreferencesSection;
 import net.mcreator.preferences.entries.BooleanEntry;
 import net.mcreator.preferences.entries.IntegerEntry;
+import net.mcreator.preferences.entries.StringEntry;
 
 public class IntegrationsSection extends PreferencesSection {
 
@@ -31,6 +32,12 @@ public class IntegrationsSection extends PreferencesSection {
 	public final BooleanEntry mcpEnable;
 	public final IntegerEntry mcpPort;
 
+	public final StringEntry aiProvider;
+	public final StringEntry aiApiKey;
+	public final StringEntry aiModel;
+	public final StringEntry aiOllamaUrl;
+	public final StringEntry aiOllamaModel;
+
 	public IntegrationsSection(String preferencesIdentifier) {
 		super(preferencesIdentifier);
 
@@ -38,6 +45,13 @@ public class IntegrationsSection extends PreferencesSection {
 		googleAnalyticsEnable = addEntry(new BooleanEntry("googleAnalyticsEnable", false));
 		mcpEnable = addEntry(new BooleanEntry("mcpEnable", false));
 		mcpPort = addEntry(new IntegerEntry("mcpPort", 3025, 1024, 60000));
+
+		// ModLab assistant
+		aiProvider = addEntry(new StringEntry("aiProvider", "Gemini", "Gemini", "Ollama"));
+		aiApiKey = addEntry(new StringEntry("aiApiKey", ""));
+		aiModel = addEntry(new StringEntry("aiModel", "gemini-3.8-flash"));
+		aiOllamaUrl = addEntry(new StringEntry("aiOllamaUrl", "http://localhost:11434"));
+		aiOllamaModel = addEntry(new StringEntry("aiOllamaModel", "llama3.1"));
 	}
 
 	@Override public String getSectionKey() {

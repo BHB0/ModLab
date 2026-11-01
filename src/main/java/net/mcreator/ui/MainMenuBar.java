@@ -21,7 +21,9 @@ package net.mcreator.ui;
 import net.mcreator.io.OS;
 import net.mcreator.io.WindowsPackage;
 import net.mcreator.ui.component.util.ComponentUtils;
+import net.mcreator.ui.assistant.AssistantDialog;
 import net.mcreator.ui.dialogs.CommandPalette;
+import net.mcreator.ui.dialogs.DiagnosticsDialog;
 import net.mcreator.ui.ide.CodeEditorView;
 import net.mcreator.ui.init.L10N;
 import net.mcreator.ui.laf.themes.Theme;
@@ -167,6 +169,12 @@ public abstract class MainMenuBar extends JMenuBar {
 		help.addSeparator();
 		help.add(createCommandPaletteItem());
 		help.add(mcreator.getActionRegistry().showShortcuts);
+		JMenuItem diagnostics = new JMenuItem(L10N.t("menubar.diagnostics"));
+		diagnostics.addActionListener(_ -> DiagnosticsDialog.show(mcreator));
+		help.add(diagnostics);
+		JMenuItem assistant = new JMenuItem(L10N.t("menubar.assistant"));
+		assistant.addActionListener(_ -> AssistantDialog.open(mcreator));
+		help.add(assistant);
 		help.addSeparator();
 		help.add(mcreator.getActionRegistry().donate); // clearly labelled: it is for the MCreator developers
 		help.addSeparator();

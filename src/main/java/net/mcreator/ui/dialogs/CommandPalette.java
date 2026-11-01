@@ -22,6 +22,7 @@ package net.mcreator.ui.dialogs;
 import net.mcreator.preferences.PreferencesManager;
 import net.mcreator.ui.MCreator;
 import net.mcreator.ui.init.L10N;
+import net.mcreator.ui.favorites.FavoritesManager;
 import net.mcreator.ui.laf.themes.Theme;
 import net.mcreator.ui.workspace.WorkspacePanel;
 import net.mcreator.workspace.elements.ModElement;
@@ -152,9 +153,12 @@ public class CommandPalette extends JDialog {
 
 		// mod elements of the workspace
 		if (mcreator.getWorkspacePanel() instanceof WorkspacePanel workspacePanel) {
+			Set<String> favorites = FavoritesManager.get(mcreator.getWorkspace());
 			for (ModElement element : mcreator.getWorkspace().getModElements()) {
-				all.add(new Entry(element.getName(), element.getType().getReadableName(),
-						L10N.t("command_palette.kind.element"), 0,
+				boolean favorite = favorites.contains(element.getName());
+				all.add(new Entry(element.getName(),
+						(favorite ? "\u2605 " : "") + element.getType().getReadableName(),
+						L10N.t("command_palette.kind.element"), favorite ? -1 : 0,
 						() -> workspacePanel.editCurrentlySelectedModElement(element, workspacePanel, 0, 0)));
 			}
 		}

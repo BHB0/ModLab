@@ -21,6 +21,10 @@ package net.mcreator.ui.variants.modmaker;
 
 import net.mcreator.ui.MCreator;
 import net.mcreator.ui.MainMenuBar;
+import net.mcreator.ui.dialogs.MigrationHelper;
+import net.mcreator.ui.dialogs.JarResourceImporter;
+import net.mcreator.ui.dialogs.BatchEditDialog;
+import net.mcreator.ui.git.GitClone;
 import net.mcreator.ui.git.GitSync;
 import net.mcreator.ui.init.L10N;
 
@@ -38,10 +42,16 @@ class ModMakerMenuBar extends MainMenuBar {
 		JMenu workspace = L10N.menu("menubar.workspace");
 		workspace.setMnemonic('S');
 		workspace.add(mcreator.getActionRegistry().setCreativeTabItemOrder);
+		JMenuItem batchEdit = new JMenuItem(L10N.t("batch.menu"));
+		batchEdit.addActionListener(_ -> BatchEditDialog.show(mcreator));
+		workspace.add(batchEdit);
 		workspace.addSeparator();
 		workspace.add(mcreator.getActionRegistry().openWorkspaceFolder);
 		workspace.addSeparator();
 		workspace.add(mcreator.getActionRegistry().workspaceSettings);
+		JMenuItem migrate = new JMenuItem(L10N.t("migrate.menu"));
+		migrate.addActionListener(_ -> MigrationHelper.start(mcreator));
+		workspace.add(migrate);
 		workspace.addSeparator();
 		workspace.add(mcreator.getActionRegistry().exportToJAR);
 		add(workspace);
@@ -61,6 +71,10 @@ class ModMakerMenuBar extends MainMenuBar {
 		JMenuItem gitConnect = new JMenuItem(L10N.t("git.menu.connect"));
 		gitConnect.addActionListener(_ -> GitSync.connect(mcreator));
 		git.add(gitConnect);
+		git.addSeparator();
+		JMenuItem gitClone = new JMenuItem(L10N.t("git.menu.clone"));
+		gitClone.addActionListener(_ -> GitClone.run(mcreator, file -> mcreator.getApplication().openWorkspaceInMCreator(file, true)));
+		git.add(gitClone);
 		JMenuItem gitInvite = new JMenuItem(L10N.t("git.menu.invite"));
 		gitInvite.addActionListener(_ -> GitSync.invite(mcreator));
 		git.add(gitInvite);
@@ -78,6 +92,9 @@ class ModMakerMenuBar extends MainMenuBar {
 		resources.add(hideableMenu(mcreator.getActionRegistry().importOtherTexture));
 		resources.addSeparator();
 		resources.add(mcreator.getActionRegistry().importSound);
+		JMenuItem importJar = new JMenuItem(L10N.t("jar.menu"));
+		importJar.addActionListener(_ -> JarResourceImporter.show(mcreator));
+		resources.add(importJar);
 		resources.addSeparator();
 		resources.add(mcreator.getActionRegistry().importStructure);
 		resources.add(mcreator.getActionRegistry().importStructureFromMinecraft);

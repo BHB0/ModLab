@@ -43,6 +43,7 @@ import net.mcreator.ui.dialogs.file.FileDialogs;
 import net.mcreator.ui.dialogs.preferences.PreferencesDialog;
 import net.mcreator.ui.dialogs.workspace.NewWorkspaceDialog;
 import net.mcreator.ui.init.AppIcon;
+import net.mcreator.ui.git.GitClone;
 import net.mcreator.ui.init.L10N;
 import net.mcreator.ui.init.UIRES;
 import net.mcreator.ui.laf.themes.Theme;
@@ -125,6 +126,9 @@ public final class WorkspaceSelector extends JFrame implements DropTargetListene
 			if (workspaceFile != null && workspaceFile.getParentFile().isDirectory())
 				workspaceOpenListener.workspaceOpened(workspaceFile);
 		});
+
+		addWorkspaceButton(L10N.t("dialog.workspace_selector.clone_github"), UIRES.get("opnwrk"),
+				_ -> GitClone.run(this, file -> workspaceOpenListener.workspaceOpened(file)));
 
 		addWorkspaceButton(L10N.t("dialog.workspace_selector.import"), UIRES.get("impfile"), _ -> {
 			File file = FileDialogs.getOpenDialog(this, new String[] { ".zip" });

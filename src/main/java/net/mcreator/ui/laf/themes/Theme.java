@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import javax.swing.*;
+import javax.swing.plaf.InsetsUIResource;
 import java.awt.*;
 import java.awt.font.TextAttribute;
 import java.io.IOException;
@@ -213,7 +214,38 @@ public class Theme {
 		overrides.putAll(flatLafOverrides);
 	}
 
+	/**
+	 * ModLab density: the values are also set directly on the UI defaults, so they apply even if the extra defaults
+	 * given to FlatLaf were ignored.
+	 */
+	private static void applyDensity(UIDefaults table) {
+		// tab height, tab padding (vertical, horizontal), button padding, field padding, menu padding, row heights
+		int[] d = switch (PreferencesManager.PREFERENCES.ui.interfaceDensity.get()) {
+			case "Compact" -> new int[] { 26, 2, 8, 0, 8, 0, 4, 1, 8, 18, 0 };
+			case "Comfortable" -> new int[] { 42, 8, 18, 7, 22, 5, 10, 6, 16, 28, 26 };
+			default -> new int[] { 34, 5, 14, 3, 16, 2, 7, 3, 12, 22, 0 };
+		};
+
+		table.put("TabbedPane.tabHeight", d[0]);
+		table.put("TabbedPane.tabInsets", new InsetsUIResource(d[1], d[2], d[1], d[2]));
+		table.put("Button.margin", new InsetsUIResource(d[3], d[4], d[3], d[4]));
+
+		for (String key : new String[] { "TextField.margin", "PasswordField.margin", "FormattedTextField.margin",
+				"EditorPane.margin", "ComboBox.padding" })
+			table.put(key, new InsetsUIResource(d[5], d[6], d[5], d[6]));
+
+		for (String key : new String[] { "Menu.margin", "MenuItem.margin", "CheckBoxMenuItem.margin",
+				"RadioButtonMenuItem.margin" })
+			table.put(key, new InsetsUIResource(d[7], d[8], d[7], d[8]));
+
+		table.put("Table.rowHeight", d[9]);
+		if (d[10] > 0)
+			table.put("Tree.rowHeight", d[10]);
+	}
+
 	public void applyUIDefaultsOverrides(UIDefaults table) {
+		applyDensity(table);
+
 		table.put("FileChooser.homeFolderIcon", UIRES.get("laf.homeFolder"));
 		table.put("FileChooser.newFolderIcon", UIRES.get("laf.newFolder"));
 		table.put("FileChooser.upFolderIcon", UIRES.get("laf.upFolder"));
