@@ -47,12 +47,7 @@ public final class BatchEditDialog {
 		if (!(mcreator.getWorkspacePanel() instanceof WorkspacePanel panel))
 			return;
 
-		List<ModElement> elements = new ArrayList<>();
-		for (var selected : panel.list.getSelectedValuesList()) {
-			if (selected instanceof ModElement element && element.getGeneratableElement() != null
-					&& !(element.getGeneratableElement() instanceof CustomElement) && !element.isCodeLocked())
-				elements.add(element);
-		}
+		List<ModElement> elements = chooseElements(mcreator, panel);
 		if (elements.isEmpty()) {
 			JOptionPane.showMessageDialog(mcreator, L10N.t("batch.nothing_selected"), title,
 					JOptionPane.INFORMATION_MESSAGE);
@@ -141,6 +136,82 @@ public final class BatchEditDialog {
 
 		JOptionPane.showMessageDialog(mcreator, L10N.t("batch.done", done, skipped, failed), title,
 				failed > 0 ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	/** Lists the elements with check boxes, so no multiple selection in the workspace is needed. */
+	private static List<ModElement> chooseElements(MCreator mcreator, WorkspacePanel panel) {
+		Set<ModElement> preselected = new HashSet<>();
+		for (var selected : panel.list.getSelectedValuesList())
+			if (selected instanceof ModElement element)
+				preselected.add(element);
+
+		List<ModElement> candidates = new ArrayList<>();
+		for (ModElement element : mcreator.getWorkspace().getModElements()) {
+			if (element.getGeneratableElement() != null && !(element.getGeneratableElement() instanceof CustomElement)
+					&& !element.isCodeLocked())
+				candidates.add(element);
+		}
+		candidates.sort(Comparator.comparing(ModElement::getName, String.CASE_INSENSITIVE_ORDER));
+		if (candidates.isEmpty())
+			return List.of();
+
+		String all = L10N.t("batch.filter_all");
+		Set<String> types = new TreeSet<>();
+		Map<ModElement, JCheckBox> boxes = new LinkedHashMap<>();
+		JPanel listPanel = new JPanel();
+		listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+		for (ModElement element : candidates) {
+			types.add(element.getType().getReadableName());
+			JCheckBox box = new JCheckBox(element.getName() + "   (" + element.getType().getReadableName() + ")",
+					preselected.contains(element));
+			boxes.put(element, box);
+			listPanel.add(box);
+		}
+
+		List<String> filterItems = new ArrayList<>();
+		filterItems.add(all);
+		filterItems.addAll(types);
+		JComboBox<String> filter = new JComboBox<>(filterItems.toArray(new String[0]));
+		filter.addActionListener(_ -> {
+			String selected = String.valueOf(filter.getSelectedItem());
+			boxes.forEach((element, box) -> box.setVisible(
+					all.equals(selected) || element.getType().getReadableName().equals(selected)));
+			listPanel.revalidate();
+			listPanel.repaint();
+		});
+
+		JButton checkAll = new JButton(L10N.t("batch.check_all"));
+		checkAll.addActionListener(_ -> boxes.values().forEach(box -> {
+			if (box.isVisible())
+				box.setSelected(true);
+		}));
+		JButton uncheckAll = new JButton(L10N.t("batch.uncheck_all"));
+		uncheckAll.addActionListener(_ -> boxes.values().forEach(box -> box.setSelected(false)));
+
+		JPanel tools = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		tools.add(filter);
+		tools.add(checkAll);
+		tools.add(uncheckAll);
+
+		JScrollPane scroll = new JScrollPane(listPanel);
+		scroll.setPreferredSize(new Dimension(460, 300));
+
+		JPanel form = new JPanel(new BorderLayout(0, 8));
+		form.add("North", new JLabel(L10N.t("batch.choose_elements")));
+		form.add("Center", scroll);
+		form.add("South", tools);
+
+		int answer = JOptionPane.showConfirmDialog(mcreator, form, L10N.t("batch.title"),
+				JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+		if (answer != JOptionPane.OK_OPTION)
+			return List.of();
+
+		List<ModElement> chosen = new ArrayList<>();
+		boxes.forEach((element, box) -> {
+			if (box.isSelected())
+				chosen.add(element);
+		});
+		return chosen;
 	}
 
 	/** Collects the simple values (text, number, true/false), also inside sub-objects up to 2 levels deep. */

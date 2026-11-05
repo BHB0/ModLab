@@ -35,13 +35,16 @@ import java.nio.file.Files;
 import java.util.*;
 
 /**
- * Favorite mod elements of each workspace, kept in the user folder of ModLab (favorites.json).
+ * Favorite mod elements of each workspace, kept in the user folder of ModLab (favorites.json). The content is kept in
+ * memory, because the list asks for it for every element it draws.
  */
 public final class FavoritesManager {
 
 	private static final Logger LOG = LogManager.getLogger("Favorites");
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Type TYPE = new TypeToken<Map<String, List<String>>>() {}.getType();
+
+	private static Map<String, List<String>> data;
 
 	private static File file() {
 		return UserFolderManager.getFileFromUserFolder("favorites.json");
@@ -51,41 +54,51 @@ public final class FavoritesManager {
 		return workspace.getFileManager().getWorkspaceFile().getAbsolutePath();
 	}
 
-	private static Map<String, List<String>> load() {
-		File file = file();
-		if (file.isFile()) {
-			try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
-				Map<String, List<String>> map = GSON.fromJson(reader, TYPE);
-				if (map != null)
-					return map;
-			} catch (Exception e) {
-				LOG.warn("Could not read the favorites", e);
+	private static synchronized Map<String, List<String>> data() {
+		if (data == null) {
+			data = new HashMap<>();
+			File file = file();
+			if (file.isFile()) {
+				try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+					Map<String, List<String>> loaded = GSON.fromJson(reader, TYPE);
+					if (loaded != null)
+						data = loaded;
+				} catch (Exception e) {
+					LOG.warn("Could not read the favorites", e);
+				}
 			}
 		}
-		return new HashMap<>();
+		return data;
+	}
+
+	public static synchronized boolean isFavorite(Workspace workspace, String name) {
+		return data().getOrDefault(key(workspace), List.of()).contains(name);
 	}
 
 	public static synchronized Set<String> get(Workspace workspace) {
-		return new HashSet<>(load().getOrDefault(key(workspace), List.of()));
+		return new HashSet<>(data().getOrDefault(key(workspace), List.of()));
 	}
 
 	/**
 	 * Adds the elements to the favorites, or removes them if they are all already favorites
+	 *
+	 * @return true if the elements are now favorites
 	 */
-	public static synchronized void toggle(Workspace workspace, Collection<String> names) {
-		Map<String, List<String>> all = load();
-		Set<String> favorites = new LinkedHashSet<>(all.getOrDefault(key(workspace), List.of()));
-		if (favorites.containsAll(names))
-			favorites.removeAll(names);
-		else
+	public static synchronized boolean toggle(Workspace workspace, Collection<String> names) {
+		Set<String> favorites = new LinkedHashSet<>(data().getOrDefault(key(workspace), List.of()));
+		boolean added = !favorites.containsAll(names);
+		if (added)
 			favorites.addAll(names);
-		all.put(key(workspace), new ArrayList<>(favorites));
+		else
+			favorites.removeAll(names);
+		data().put(key(workspace), new ArrayList<>(favorites));
 
 		try {
-			Files.writeString(file().toPath(), GSON.toJson(all, TYPE), StandardCharsets.UTF_8);
+			Files.writeString(file().toPath(), GSON.toJson(data(), TYPE), StandardCharsets.UTF_8);
 		} catch (Exception e) {
 			LOG.warn("Could not save the favorites", e);
 		}
+		return added;
 	}
 
 }

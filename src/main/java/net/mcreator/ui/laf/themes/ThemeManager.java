@@ -27,6 +27,7 @@ import net.mcreator.io.FileIO;
 import net.mcreator.io.OS;
 import net.mcreator.plugin.PluginLoader;
 import net.mcreator.preferences.PreferencesManager;
+import net.mcreator.ui.laf.ModLabFonts;
 import net.mcreator.ui.laf.LafUtil;
 import net.mcreator.util.image.ImageUtils;
 import org.apache.logging.log4j.LogManager;
@@ -71,6 +72,8 @@ public class ThemeManager {
 			// Make sure UI works on Windows High-DPI
 			HiDPIUtils.installHiDPIRepaintManager();
 
+			ModLabFonts.install();
+
 			FlatLaf laf;
 			String themeName = theme.getFlatLafTheme();
 			if (themeName.endsWith(".json")) {
@@ -109,6 +112,17 @@ public class ThemeManager {
 				theme.setIcon(new ImageIcon(ImageUtils.resize(new ImageIcon(url).getImage(), 64)));
 
 			THEMES.add(theme);
+		}
+
+		// ModLab: people who still use the default MCreator theme move once to the matching ModLab theme
+		if (!PreferencesManager.PREFERENCES.hidden.modlabThemeMigrated.get()) {
+			String selected = PreferencesManager.PREFERENCES.hidden.uiTheme.get();
+			if ("default_dark".equals(selected))
+				PreferencesManager.PREFERENCES.hidden.uiTheme.set("modlab_dark");
+			else if ("default_light".equals(selected))
+				PreferencesManager.PREFERENCES.hidden.uiTheme.set("modlab_light");
+			PreferencesManager.PREFERENCES.hidden.modlabThemeMigrated.set(true);
+			PreferencesManager.savePreferences();
 		}
 
 		CURRENT_THEME = getTheme(PreferencesManager.PREFERENCES.hidden.uiTheme.get()).init();

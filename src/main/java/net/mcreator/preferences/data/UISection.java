@@ -37,6 +37,7 @@ public class UISection extends PreferencesSection {
 	public final StringEntry interfaceDensity;
 	public final StringEntry interfaceCornerStyle;
 	public final StringEntry toolbarStyle;
+	public final StringEntry interfaceFont;
 	public final StringEntry backgroundSource;
 	public final BooleanEntry usemacOSMenuBar;
 	public final BooleanEntry nativeFileChooser;
@@ -51,6 +52,7 @@ public class UISection extends PreferencesSection {
 		interfaceAccentColor = addEntry(new ColorEntry("interfaceAccentColor", ColorScheme.MAIN_TINT_DEFAULT));
 		interfaceDensity = addEntry(new StringEntry("interfaceDensity", "Standard", "Compact", "Standard", "Comfortable"));
 		interfaceCornerStyle = addEntry(new StringEntry("interfaceCornerStyle", "Rounded", "Rounded", "Square"));
+		interfaceFont = addEntry(new StringEntry("interfaceFont", "Inter", "Inter", "System"));
 		toolbarStyle = addEntry(new StringEntry("toolbarStyle", "Simplified", "Simplified", "Full"));
 		backgroundSource = addEntry(
 				new StringEntry("backgroundSource", "All", "All", "Current theme", "Custom", "None"));

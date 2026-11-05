@@ -157,7 +157,7 @@ public class CommandPalette extends JDialog {
 			for (ModElement element : mcreator.getWorkspace().getModElements()) {
 				boolean favorite = favorites.contains(element.getName());
 				all.add(new Entry(element.getName(),
-						(favorite ? "\u2605 " : "") + element.getType().getReadableName(),
+						(favorite ? "\u2605 " + L10N.t("favorites.label") + " - " : "") + element.getType().getReadableName(),
 						L10N.t("command_palette.kind.element"), favorite ? -1 : 0,
 						() -> workspacePanel.editCurrentlySelectedModElement(element, workspacePanel, 0, 0)));
 			}

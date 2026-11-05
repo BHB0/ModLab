@@ -1,0 +1,12 @@
+{
+  "name": "ModLab Light",
+  "flatLafTheme": "FlatLightLaf",
+  "colorScheme": {
+    "backgroundColor": "0xfaf7fb",
+    "altBackgroundColor": "0xefe8f1",
+    "secondAltBackgroundColor": "0xe6dcea",
+    "foregroundColor": "0x1d1822",
+    "altForegroundColor": "0x6a6073",
+    "interfaceAccentColor": "0xE60072"
+  }
+}

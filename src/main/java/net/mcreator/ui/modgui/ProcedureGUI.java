@@ -77,6 +77,11 @@ public class ProcedureGUI extends ModElementGUI<net.mcreator.element.types.Proce
 
 	private BlocklyPanel blocklyPanel;
 
+	/** Used by the assistant to add blocks to the open procedure. */
+	public BlocklyPanel getBlocklyPanel() {
+		return blocklyPanel;
+	}
+
 	private final DefaultListModel<VariableElement> localVars = new DefaultListModel<>();
 	private final JList<VariableElement> localVarsList = new JList<>(localVars);
 

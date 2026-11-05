@@ -31,6 +31,7 @@ import net.mcreator.preferences.PreferencesManager;
 import net.mcreator.ui.action.ActionRegistry;
 import net.mcreator.ui.action.impl.workspace.RegenerateCodeAction;
 import net.mcreator.ui.browser.WorkspaceFileBrowser;
+import net.mcreator.ui.assistant.AssistantPanel;
 import net.mcreator.ui.component.CollapsibleDockPanel;
 import net.mcreator.ui.component.JEmptyBox;
 import net.mcreator.ui.component.util.PanelUtils;
@@ -68,6 +69,7 @@ public abstract class MCreator extends MCreatorFrame {
 	private static final Logger LOG = LogManager.getLogger("MCreator");
 
 	public static final String DOCK_CONSOLE = "console";
+	public static final String DOCK_ASSISTANT = "modlab_assistant";
 	public static final String DOCK_PROJECT_BROWSER = "project_browser";
 	public static final String DOCK_LOCAL_HISTORY = "local_history";
 
@@ -86,6 +88,7 @@ public abstract class MCreator extends MCreatorFrame {
 
 	private final CollapsibleDockPanel leftDockRegion;
 	private final CollapsibleDockPanel rightDockRegion;
+	private AssistantPanel assistantPanel;
 	private final CollapsibleDockPanel bottomDockRegion;
 
 	public static MCreator create(@Nullable MCreatorApplication application, @Nonnull Workspace workspace) {
@@ -149,6 +152,11 @@ public abstract class MCreator extends MCreatorFrame {
 
 		bottomDockRegion.addDock(DOCK_CONSOLE, 300, createConsoleButton(), gradleConsole);
 
+		// ModLab: the assistant is docked on the right of the window
+		assistantPanel = new AssistantPanel(this);
+		rightDockRegion.addDock(DOCK_ASSISTANT, 400, L10N.t("assistant.dock"), AssistantPanel.dockIcon(),
+				assistantPanel);
+
 		JToolBar dockStripLeft = CollapsibleDockPanel.createStaticTwoRegionsStrip(this, leftDockRegion,
 				bottomDockRegion);
 
@@ -179,6 +187,16 @@ public abstract class MCreator extends MCreatorFrame {
 		// The right dock strip is only visible if a dock was added to the right region (e.g. by a plugin), in which
 		// case the frame is widened by the strip width so the main area keeps the size the frame is sized for
 		calculateFrameSize(dockStripRight.isVisible() ? dockStripRight.getPreferredSize().width : 0);
+	}
+
+	/**
+	 * Opens the assistant dock, and sends the message if there is one.
+	 */
+	public void showAssistant(String message) {
+		rightDockRegion.setDockVisibility(DOCK_ASSISTANT, true);
+		assistantPanel.focusInput();
+		if (message != null && !message.isBlank())
+			assistantPanel.submit(message);
 	}
 
 	@Nonnull private JToggleButton createConsoleButton() {

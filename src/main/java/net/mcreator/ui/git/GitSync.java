@@ -26,6 +26,7 @@ import com.google.gson.JsonParser;
 import net.mcreator.ui.dialogs.ProgressDialog;
 import net.mcreator.ui.init.L10N;
 import net.mcreator.util.DesktopUtils;
+import net.mcreator.workspace.ShareableZIPManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -199,6 +200,10 @@ public final class GitSync {
 				return;
 		}
 
+		// the repository may contain another workspace file than the open one: it takes its place
+		if (adoptRepositoryWorkspace())
+			return;
+
 		mcreator.getWorkspace().getFileManager().saveWorkspaceDirectlyAndWait();
 
 		PullResult pull = doPull(false);
@@ -229,8 +234,6 @@ public final class GitSync {
 			} else {
 				showOutput(L10N.t("git.pull.title"), explain(pull.result()), JOptionPane.ERROR_MESSAGE);
 			}
-		} else if (offerRepositoryWorkspace()) {
-			// the workspace of the repository was opened instead of the current one
 		} else if (pull.changed()) {
 			JOptionPane.showMessageDialog(mcreator, L10N.t("git.pull.reload"), L10N.t("git.pull.title"),
 					JOptionPane.INFORMATION_MESSAGE);
@@ -272,6 +275,105 @@ public final class GitSync {
 					!before.equals(after), conflict, unrelated, output);
 			return new PullResult(merge, !before.equals(after), conflict, unrelated);
 		});
+	}
+
+	/**
+	 * When the repository contains a workspace file that is not the open one, the content of the repository is put
+	 * in this workspace folder and the workspace is reloaded in the same window. A zip backup of the current workspace
+	 * is made first, so nothing is lost.
+	 *
+	 * @return true if the pull was handled here (done, cancelled or failed), false to do a normal pull
+	 */
+	private boolean adoptRepositoryWorkspace() {
+		String title = L10N.t("git.pull.title");
+
+		Boolean fetched = withProgress(title, () -> git("fetch", "origin").ok());
+		if (fetched == null || !fetched)
+			return false; // the normal pull will report the problem
+
+		String branch = remoteBranch();
+		if (branch == null)
+			return false;
+
+		GitResult tree = git("ls-tree", "-r", "--name-only", "origin/" + branch);
+		if (!tree.ok())
+			return false;
+
+		File current = mcreator.getWorkspace().getFileManager().getWorkspaceFile();
+		List<String> remoteWorkspaces = new ArrayList<>(
+				tree.output().lines().map(String::strip).filter(name -> name.endsWith(".mcreator") && !name.contains("/"))
+						.toList());
+		java.util.Collections.sort(remoteWorkspaces);
+		LOG.info("Workspace files of the repository: {}, opened: {}", remoteWorkspaces, current.getName());
+		if (remoteWorkspaces.isEmpty() || remoteWorkspaces.contains(current.getName()))
+			return false; // same workspace: normal merge
+
+		String target = remoteWorkspaces.get(0);
+		if (!mcreator.getWorkspace().getModElements().isEmpty()) {
+			int choice = JOptionPane.showConfirmDialog(mcreator, L10N.t("git.adopt.confirm", target, current.getName()),
+					title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+			if (choice != JOptionPane.OK_OPTION)
+				return true;
+		}
+
+		File backupFolder = new File(System.getProperty("user.home"), "ModLabBackups");
+		if (!backupFolder.isDirectory() && !backupFolder.mkdirs()) {
+			JOptionPane.showMessageDialog(mcreator, L10N.t("git.adopt.backup_failed"), title,
+					JOptionPane.ERROR_MESSAGE);
+			return true;
+		}
+
+		mcreator.getWorkspace().getFileManager().saveWorkspaceDirectlyAndWait();
+		File backup = new File(backupFolder, dir.getName() + "-before-github-"
+				+ new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + ".zip");
+		ShareableZIPManager.exportZIP(title, backup, mcreator, true);
+		if (!backup.isFile() || backup.length() == 0) {
+			JOptionPane.showMessageDialog(mcreator, L10N.t("git.adopt.backup_failed"), title,
+					JOptionPane.ERROR_MESSAGE);
+			return true;
+		}
+
+		MCreatorApplication application = mcreator.getApplication();
+		if (!mcreator.closeThisMCreator(true)) {
+			JOptionPane.showMessageDialog(mcreator, L10N.t("git.pull.reload_failed"), title,
+					JOptionPane.WARNING_MESSAGE);
+			return true;
+		}
+
+		// from here the window is closed: the folder becomes the content of the repository
+		GitResult checkout = git("checkout", "-f", "-B", branch, "origin/" + branch);
+		if (!checkout.ok()) {
+			JOptionPane.showMessageDialog(null, explain(checkout), title, JOptionPane.ERROR_MESSAGE);
+			application.openWorkspaceInMCreator(current, false);
+			return true;
+		}
+		git("branch", "--set-upstream-to=origin/" + branch, branch);
+
+		File targetFile = new File(dir, target);
+		if (current.exists() && !current.equals(targetFile)) {
+			try {
+				Files.move(current.toPath(), new File(backupFolder, current.getName() + ".old").toPath(),
+						java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				LOG.warn("Could not move the old workspace file", e);
+			}
+		}
+
+		application.openWorkspaceInMCreator(targetFile, true);
+		return true;
+	}
+
+	/** @return the branch of the repository to get, or null */
+	private String remoteBranch() {
+		String local = git("symbolic-ref", "--short", "HEAD").output().trim();
+		if (!local.isEmpty() && git("rev-parse", "--verify", "--quiet", "origin/" + local).ok())
+			return local;
+
+		for (String line : git("ls-remote", "--symref", "origin", "HEAD").output().split("\\R")) {
+			if (line.startsWith("ref:"))
+				return line.substring(4).strip().split("\\s+")[0].replaceFirst("^refs/heads/", "");
+		}
+		return null;
 	}
 
 	/**
@@ -589,7 +691,7 @@ public final class GitSync {
 		area.setCaretPosition(0);
 		JScrollPane scroll = new JScrollPane(area);
 		scroll.setPreferredSize(new Dimension(560, 260));
-		JOptionPane.showMessageDialog(mcreator, scroll, title, messageType);
+		JOptionPane.showMessageDialog(mcreator.isDisplayable() ? mcreator : null, scroll, title, messageType);
 	}
 
 	private <T> T withProgress(String title, Supplier<T> job) {

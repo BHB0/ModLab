@@ -40,6 +40,7 @@ import net.mcreator.ui.component.util.ListUtil;
 import net.mcreator.ui.component.util.PanelUtils;
 import net.mcreator.ui.dialogs.BatchEditDialog;
 import net.mcreator.ui.dialogs.ModElementIDsDialog;
+import net.mcreator.ui.favorites.FavoriteStarRenderer;
 import net.mcreator.ui.favorites.FavoritesManager;
 import net.mcreator.ui.dialogs.ProgressDialog;
 import net.mcreator.ui.dialogs.SearchUsagesDialog;
@@ -777,8 +778,11 @@ import java.util.regex.Pattern;
 		favoriteElement.addActionListener(_ -> {
 			List<String> names = list.getSelectedValuesList().stream().filter(ModElement.class::isInstance)
 					.map(element -> ((ModElement) element).getName()).toList();
-			if (!names.isEmpty())
-				FavoritesManager.toggle(mcreator.getWorkspace(), names);
+			if (!names.isEmpty()) {
+				boolean added = FavoritesManager.toggle(mcreator.getWorkspace(), names);
+				mcreator.getStatusBar().setMessage(L10N.t(added ? "favorites.added" : "favorites.removed", names.size()));
+				list.repaint();
+			}
 		});
 		contextMenu.add(favoriteElement);
 		JMenuItem batchEditElements = new JMenuItem(L10N.t("workspace.elements.list.edit.batch"));
@@ -842,7 +846,7 @@ import java.util.regex.Pattern;
 	private void updateElementListRenderer() {
 		switch (mcreator.getWorkspaceUserSettings().workspacePanelIconSize) {
 		case TILES -> {
-			list.setCellRenderer(new TilesModListRender());
+			list.setCellRenderer(new FavoriteStarRenderer(new TilesModListRender(), () -> mcreator.getWorkspace()));
 			list.setFixedCellHeight(72);
 			list.setFixedCellWidth(287);
 			list.setLayoutOrientation(JList.HORIZONTAL_WRAP);
@@ -851,7 +855,7 @@ import java.util.regex.Pattern;
 			detailsbar.setVisible(false);
 		}
 		case LARGE -> {
-			list.setCellRenderer(new LargeIconModListRender());
+			list.setCellRenderer(new FavoriteStarRenderer(new LargeIconModListRender(), () -> mcreator.getWorkspace()));
 			list.setFixedCellHeight(97);
 			list.setFixedCellWidth(90);
 			list.setLayoutOrientation(JList.HORIZONTAL_WRAP);
@@ -860,7 +864,7 @@ import java.util.regex.Pattern;
 			detailsbar.setVisible(false);
 		}
 		case MEDIUM -> {
-			list.setCellRenderer(new MediumIconModListRender());
+			list.setCellRenderer(new FavoriteStarRenderer(new MediumIconModListRender(), () -> mcreator.getWorkspace()));
 			list.setFixedCellHeight(52);
 			list.setFixedCellWidth(287);
 			list.setLayoutOrientation(JList.HORIZONTAL_WRAP);
@@ -869,7 +873,7 @@ import java.util.regex.Pattern;
 			detailsbar.setVisible(false);
 		}
 		case SMALL -> {
-			list.setCellRenderer(new SmallIconModListRender(true));
+			list.setCellRenderer(new FavoriteStarRenderer(new SmallIconModListRender(true), () -> mcreator.getWorkspace()));
 			list.setFixedCellHeight(32);
 			list.setFixedCellWidth(200);
 			list.setLayoutOrientation(JList.HORIZONTAL_WRAP);
@@ -878,7 +882,7 @@ import java.util.regex.Pattern;
 			detailsbar.setVisible(false);
 		}
 		case LIST -> {
-			list.setCellRenderer(new ListIconModListRender());
+			list.setCellRenderer(new FavoriteStarRenderer(new ListIconModListRender(), () -> mcreator.getWorkspace()));
 			list.setFixedCellHeight(28);
 			list.setFixedCellWidth(-1);
 			list.setLayoutOrientation(JList.VERTICAL);
@@ -887,7 +891,7 @@ import java.util.regex.Pattern;
 			detailsbar.setVisible(false);
 		}
 		case DETAILS -> {
-			list.setCellRenderer(new DetailsIconModListRender());
+			list.setCellRenderer(new FavoriteStarRenderer(new DetailsIconModListRender(), () -> mcreator.getWorkspace()));
 			list.setFixedCellHeight(24);
 			list.setFixedCellWidth(-1);
 			list.setLayoutOrientation(JList.VERTICAL);

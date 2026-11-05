@@ -1,0 +1,11 @@
+{
+  "name": "ModLab Dark",
+  "colorScheme": {
+    "backgroundColor": "0x17121c",
+    "altBackgroundColor": "0x241d2b",
+    "secondAltBackgroundColor": "0x110d15",
+    "foregroundColor": "0xf5f0f7",
+    "altForegroundColor": "0xb9aec1",
+    "interfaceAccentColor": "0xFF057E"
+  }
+}

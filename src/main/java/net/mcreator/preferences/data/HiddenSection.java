@@ -35,6 +35,7 @@ public class HiddenSection extends PreferencesSection {
 	public final BooleanEntry fullScreen;
 	public final PreferencesEntry<File> java_home;
 	public final StringEntry uiTheme;
+	public final BooleanEntry modlabThemeMigrated;
 	public final StringEntry lastWebsiteNewsRead;
 	public final StringEntry defenderExclusions;
 
@@ -55,7 +56,8 @@ public class HiddenSection extends PreferencesSection {
 				}
 			}
 		});
-		uiTheme = addEntry(new StringEntry("uiTheme", "default_dark"));
+		uiTheme = addEntry(new StringEntry("uiTheme", "modlab_dark"));
+		modlabThemeMigrated = addEntry(new BooleanEntry("modlabThemeMigrated", false));
 		lastWebsiteNewsRead = addEntry(new StringEntry("lastWebsiteNewsRead", ""));
 		defenderExclusions = addEntry(new StringEntry("defenderExclusions",
 				"")); // empty if user was not asked yet, otherwise "added", "skipped" or "failed"
